@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MARS-SENTINEL v3.0 ULTRA - Advanced Mission Control</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;800&display=swap');
+
+        :root {
+            --mars-red: #FF4444;
+            --deep-space: #0a0a0f;
+            --nebula-blue: #1e3a8a;
+            --plasma-green: #00ff88;
+            --warning-amber: #ffaa00;
+            --danger-crimson: #ff1744;
+            --text-cyber: #00ffff;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon-glow: 0 0 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: linear-gradient(45deg, var(--deep-space) 0%, var(--nebula-blue) 50%, #1a1a2e 100%);
+            color: var(--text-cyber);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background */
+        .space-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+                radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+                radial-gradient(1px 1px at 130px 80px, #fff, transparent),
+                radial-gradient(2px 2px at 160px 30px, #fff, transparent);
+            background-repeat: repeat;
+            background-size: 200px 100px;
+            animation: twinkle 4s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Glass Morphism Container */
+        .glass-container {
+            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--neon-glow) rgba(0, 255, 255, 0.2);
+        }
+
+        /* Header with Holographic Effect */
+        .mission-header {
+            text-align: center;
+            padding: 30px;
+            margin: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mission-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+            animation: scan 3s infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .mission-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 3.5em;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--mars-red), var(--text-cyber), var(--plasma-green));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--neon-glow) var(--text-cyber);
+            margin-bottom: 10px;
+            animation: pulse-glow 2s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { filter: brightness(1) drop-shadow(0 0 10px var(--text-cyber)); }
+            100% { filter: brightness(1.2) drop-shadow(0 0 30px var(--text-cyber)); }
+        }
+
+        .mission-subtitle {
+            font-size: 1.4em;
+            color: var(--text-cyber);
+            opacity: 0.9;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, var(--plasma-green), #00cc66);
+            color: black;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-top: 15px;
+            font-family: 'Orbitron', monospace;
+            box-shadow: var(--neon-glow) var(--plasma-green);
+            animation: status-pulse 2s infinite;
+        }
+
+        @keyframes status-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Advanced Grid Layout */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 20px;
+            perspective: 1000px;
+        }
+
+        /* Futuristic Cards with 3D Effect */
+        .holo-card {
+            position: relative;
+            padding: 25px;
+            transform-style: preserve-3d;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+        }
+
+        .holo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(0, 255, 255, 0.1) 0%, 
+                rgba(255, 68, 68, 0.1) 50%, 
+                rgba(0, 255, 136, 0.1) 100%);
+            border-radius: 20px;
+            z-index: -1;
+            transition: all 0.3s ease;
+        }
+
+        .holo-card:hover {
+            transform: translateY(-10px) rotateX(5deg) rotateY(5deg);
+            box-shadow: 
+                0 20px 40px rgba(0, 255, 255, 0.3),
+                0 0 60px rgba(255, 68, 68, 0.2);
+        }
+
+        .holo-card:hover::before {
+            background: linear-gradient(45deg, 
+                rgba(0, 255, 255, 0.2) 0%, 
+                rgba(255, 68, 68, 0.2) 50%, 
+                rgba(0, 255, 136, 0.2) 100%);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2em;
+            color: var(--text-cyber);
+        }
+
+        .sensor-icon {
+            font-size: 2em;
+            margin-right: 10px;
+            animation: icon-float 3s ease-in-out infinite;
+        }
+
+        @keyframes icon-float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* Advanced Status Indicators */
+        .status-orb {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .status-orb::before {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), transparent 50%);
+        }
+
+        .status-orb.ok {
+            background: radial-gradient(circle, var(--plasma-green), #004d1a);
+            box-shadow: 0 0 30px var(--plasma-green);
+            animation: pulse-green 2s infinite;
+        }
+
+        .status-orb.warn {
+            background: radial-gradient(circle, var(--warning-amber), #cc6600);
+            box-shadow: 0 0 30px var(--warning-amber);
+            animation: pulse-amber 1s infinite;
+        }
+
+        .status-orb.danger {
+            background: radial-gradient(circle, var(--danger-crimson), #990000);
+            box-shadow: 0 0 30px var(--danger-crimson);
+            animation: pulse-red 0.5s infinite;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 20px var(--plasma-green); }
+            50% { box-shadow: 0 0 40px var(--plasma-green); }
+        }
+
+        @keyframes pulse-amber {
+            0%, 100% { box-shadow: 0 0 20px var(--warning-amber); }
+            50% { box-shadow: 0 0 40px var(--warning-amber); }
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 20px var(--danger-crimson); }
+            50% { box-shadow: 0 0 40px var(--danger-crimson); }
+        }
+
+        /* Holographic Display Values */
+        .holo-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .primary-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 4em;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--text-cyber), var(--plasma-green));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            line-height: 1;
+            position: relative;
+        }
+
+        .primary-value::after {
+            content: attr(data-unit);
+            font-size: 0.3em;
+            position: absolute;
+            top: 0;
+            right: -0.8em;
+            opacity: 0.7;
+        }
+
+        .status-text {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            margin-top: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Advanced Charts Container */
+        .chart-matrix {
+            grid-column: 1 / -1;
+            margin: 30px 20px;
+            padding: 30px;
+            position: relative;
+        }
+
+        .chart-matrix::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(0, 255, 255, 0.05) 0%, 
+                rgba(255, 68, 68, 0.05) 25%,
+                rgba(0, 255, 136, 0.05) 50%,
+                rgba(255, 170, 0, 0.05) 75%,
+                rgba(0, 255, 255, 0.05) 100%);
+            border-radius: 20px;
+            z-index: -1;
+        }
+
+        .chart-header {
+            text-align: center;
+            margin-bottom: 30px;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8em;
+            color: var(--text-cyber);
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-panel {
+            position: relative;
+            height: 350px;
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Mission Control Stats */
+        .mission-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 20px;
+        }
+
+        .stat-module {
+            text-align: center;
+            padding: 25px;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stat-module::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .stat-module:hover::before {
+            left: 100%;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--text-cyber);
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+            font-weight: 300;
+        }
+
+        /* Critical Alert System */
+        .alert-system {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(45deg, var(--danger-crimson), #ff6b6b);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            font-size: 1.2em;
+            z-index: 9999;
+            transform: translateY(-100%);
+            transition: transform 0.5s ease;
+            box-shadow: 0 5px 20px rgba(255, 23, 68, 0.5);
+        }
+
+        .alert-system.active {
+            transform: translateY(0);
+            animation: alert-flash 1s infinite;
+        }
+
+        @keyframes alert-flash {
+            0%, 100% { background: linear-gradient(45deg, var(--danger-crimson), #ff6b6b); }
+            50% { background: linear-gradient(45deg, #ff6b6b, var(--danger-crimson)); }
+        }
+
+        /* Connection Status with Neural Network Effect */
+        .connection-hub {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+        }
+
+        .connection-hub.online {
+            background: linear-gradient(45deg, var(--plasma-green), #00cc66);
+            color: black;
+            box-shadow: 0 0 30px var(--plasma-green);
+        }
+
+        .connection-hub.offline {
+            background: linear-gradient(45deg, var(--danger-crimson), #ff6b6b);
+            color: white;
+            box-shadow: 0 0 30px var(--danger-crimson);
+            animation: connection-lost 1s infinite;
+        }
+
+        @keyframes connection-lost {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .mission-title {
+                font-size: 2.5em;
+            }
+            
+            .control-grid {
+                grid-template-columns: 1fr;
+                margin: 10px;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .primary-value {
+                font-size: 3em;
+            }
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--deep-space);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+
+        .loading-spinner {
+            width: 100px;
+            height: 100px;
+            border: 3px solid transparent;
+            border-top: 3px solid var(--text-cyber);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 50px var(--text-cyber);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Mission Footer */
+        .mission-footer {
+            text-align: center;
+            margin: 50px 20px 20px;
+            padding: 30px;
+            border-top: 1px solid var(--glass-border);
+            font-family: 'Orbitron', monospace;
+            opacity: 0.7;
+        }
+
+        .mission-footer .logo {
+            font-size: 1.5em;
+            color: var(--mars-red);
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loadingScreen">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Animated Space Background -->
+    <div class="space-bg">
+        <div class="stars"></div>
+    </div>
+
+    <!-- Critical Alert System -->
+    <div class="alert-system" id="criticalAlert">
+        🚨 CRITICAL ENVIRONMENTAL HAZARD DETECTED - IMMEDIATE ACTION REQUIRED 🚨
+    </div>
+
+    <!-- Connection Status -->
+    <div class="connection-hub offline" id="connectionStatus">
+        🔴 ESTABLISHING LINK...
+    </div>
+
+    <!-- Mission Header -->
+    <div class="mission-header glass-container">
+        <h1 class="mission-title">MARS-SENTINEL v3.0</h1>
+        <div class="mission-subtitle">ULTRA ADVANCED MISSION CONTROL SYSTEM</div>
+        <div class="status-badge">NEURAL INTERFACE ACTIVE</div>
+    </div>
+
+    <!-- Control Grid -->
+    <div class="control-grid">
+        <!-- Temperature Module -->
+        <div class="holo-card glass-container">
+            <div class="card-header">
+                <span><span class="sensor-icon">🌡️</span>THERMAL SCANNER</span>
+                <div class="status-orb ok" id="tempOrb"></div>
+            </div>
+            <div class="holo-display">
+                <div class="primary-value" id="temperature" data-unit="°C">--</div>
+                <div class="status-text" id="tempStatus">INITIALIZING THERMAL ARRAY...</div>
+            </div>
+        </div>
+
+        <!-- Humidity Module -->
+        <div class="holo-card glass-container">
+            <div class="card-header">
+                <span><span class="sensor-icon">💧</span>HUMIDITY MATRIX</span>
+                <div class="status-orb ok" id="humidOrb"></div>
+            </div>
+            <div class="holo-display">
+                <div class="primary-value" id="humidity" data-unit="%">--</div>
+                <div class="status-text" id="humidStatus">CALIBRATING MOISTURE SENSORS...</div>
+            </div>
+        </div>
+
+        <!-- Gas Detection Module -->
+        <div class="holo-card glass-container">
+            <div class="card-header">
+                <span><span class="sensor-icon">☁️</span>ATMOSPHERIC ANALYZER</span>
+                <div class="status-orb ok" id="gasOrb"></div>
+            </div>
+            <div class="holo-display">
+                <div class="primary-value" id="gasLevel" data-unit="PPM">--</div>
+                <div class="status-text" id="gasStatus">SCANNING MOLECULAR COMPOSITION...</div>
+            </div>
+        </div>
+
+        <!-- System Overview Module -->
+        <div class="holo-card glass-container">
+            <div class="card-header">
+                <span><span class="sensor-icon">🎯</span>MISSION STATUS</span>
+                <div class="status-orb ok" id="systemOrb"></div>
+            </div>
+            <div class="holo-display">
+                <div class="primary-value" id="overallStatus">STANDBY</div>
+                <div class="status-text" id="systemStatusText">AWAITING MISSION PARAMETERS...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Chart Matrix -->
+    <div class="chart-matrix glass-container">
+        <div class="chart-header">📊 REAL-TIME ENVIRONMENTAL MATRIX</div>
+        
+        <div class="chart-grid">
+            <div class="chart-panel">
+                <canvas id="environmentChart"></canvas>
+            </div>
+            <div class="chart-panel">
+                <canvas id="gasChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-panel" style="grid-column: 1 / -1; height: 300px;">
+            <canvas id="combinedChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Mission Control Statistics -->
+    <div class="mission-stats">
+        <div class="stat-module glass-container">
+            <div class="stat-value" id="totalEvents">0</div>
+            <div class="stat-label">Mission Events</div>
+        </div>
+        <div class="stat-module glass-container">
+            <div class="stat-value" id="uptime">00:00:00</div>
+            <div class="stat-label">Mission Elapsed Time</div>
+        </div>
+        <div class="stat-module glass-container">
+            <div class="stat-value" id="dataRate">0</div>
+            <div class="stat-label">Data Stream (Hz)</div>
+        </div>
+        <div class="stat-module glass-container">
+            <div class="stat-value" id="sensorHealth">100%</div>
+            <div class="stat-label">System Integrity</div>
+        </div>
+        <div class="stat-module glass-container">
+            <div class="stat-value" id="riskLevel">NOMINAL</div>
+            <div class="stat-label">Threat Assessment</div>
+        </div>
+        <div class="stat-module glass-container">
+            <div class="stat-value" id="efficiency">98.7%</div>
+            <div class="stat-label">Neural Efficiency</div>
+        </div>
+    </div>
+
+    <!-- Mission Footer -->
+    <div class="mission-footer">
+        <div class="logo">🛰️ MARS-SENTINEL ULTRA</div>
+        <p>Advanced Astronaut Environmental Safety | Neural Interface v3.0</p>
+        <p>Hardware: Arduino UNO + DHT11 + MQ-2 | Status: MISSION READY</p>
+    </div>
+
+    <script>
+        // Global variables
+        let socket;
+        let environmentChart, gasChart, combinedChart;
+        let startTime = Date.now();
+        let totalEvents = 0;
+        let eventTimes = [];
+        let lastDataTime = 0;
+
+        // Enhanced thresholds
+        const thresholds = {
+            tempWarn: 35, tempDanger: 45,
+            humidWarn: 70, humidDanger: 85,
+            gasWarn: 300, gasDanger: 600
+        };
+
+        // Initialize system
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                }, 1000);
+            }, 2000);
+
+            initializeAdvancedCharts();
+            connectNeuralLink();
+            setInterval(updateMissionTime, 1000);
+            setInterval(calculateDataMetrics, 5000);
+            setInterval(updateEfficiency, 10000);
+        });
+
+        function connectNeuralLink() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                updateConnectionStatus(true);
+            });
+
+            socket.on('disconnect', function() {
+                updateConnectionStatus(false);
+            });
+
+            socket.on('sensor_data', function(data) {
+                updateMissionControl(data);
+            });
+        }
+
+        function updateConnectionStatus(connected) {
+            const status = document.getElementById('connectionStatus');
+            if (connected) {
+                status.textContent = '🟢 NEURAL LINK ACTIVE';
+                status.className = 'connection-hub online';
+            } else {
+                status.textContent = '🔴 CONNECTION LOST';
+                status.className = 'connection-hub offline';
+            }
+        }
+
+        function initializeAdvancedCharts() {
+            // Environment Chart with Advanced Styling
+            const envCtx = document.getElementById('environmentChart').getContext('2d');
+            environmentChart = new Chart(envCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: [],
+                        borderColor: '#FF4444',
+                        backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 8
+                    }, {
+                        label: 'Humidity (%)',
+                        data: [],
+                        borderColor: '#00ffff',
+                        backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'ENVIRONMENTAL MATRIX',
+                            color: '#00ffff',
+                            font: { family: 'Orbitron', size: 16 }
+                        },
+                        legend: {
+                            labels: { color: '#00ffff', font: { family: 'Orbitron' } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(0, 255, 255, 0.2)' },
+                            ticks: { color: '#00ffff', font: { family: 'Orbitron' } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(0, 255, 255, 0.2)' },
+                            ticks: { color: '#00ffff', font: { family: 'Orbitron' } }
+                        }
+                    },
+                    elements: {
+                        line: { borderJoinStyle: 'round' }
+                    }
+                }
+            });
+
+            // Gas Chart with Threat Zones
+            const gasCtx = document.getElementById('gasChart').getContext('2d');
+            gasChart = new Chart(gasCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Gas Concentration (ppm)',
+                        data: [],
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'ATMOSPHERIC THREAT ANALYSIS',
+                            color: '#00ffff',
+                            font: { family: 'Orbitron', size: 16 }
+                        },
+                        legend: {
+                            labels: { color: '#00ffff', font: { family: 'Orbitron' } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(0, 255, 255, 0.2)' },
+                            ticks: { color: '#00ffff', font: { family: 'Orbitron' } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(0, 255, 255, 0.2)' },
+                            ticks: { color: '#00ffff', font: { family: 'Orbitron' } },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Combined Multi-Parameter Chart
+            const combinedCtx = document.getElementById('combinedChart').getContext('2d');
+            combinedChart = new Chart(combinedCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperature Index',
+                        data: [],
+                        borderColor: '#FF4444',
+                        backgroundColor: 'rgba(255, 68, 68, 0.05)',
+                        yAxisID: 'y',
+                        tension: 0.3
+                    }, {
+                        label: 'Humidity Index',
+                        data: [],
+                        borderColor: '#00ffff',
+                        backgroundColor: 'rgba(0, 255, 255, 0.05)',
+                        yAxisID: 'y',
+                        tension: 0.3
+                    }, {
+                        label: 'Gas Threat Level',
+                        data: [],
+                        borderColor: '#ffaa00',
+                        backgroundColor: 'rgba(255, 170, 0, 0.05)',
+                        yAxisID: 'y1',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'INTEGRATED THREAT ASSESSMENT MATRIX',
+                            color: '#00ffff',
+                            font: { family: 'Orbitron', size: 18 }
+                        },
+                        legend: {
+                            labels: { color: '#00ffff', font: { family: 'Orbitron' } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(0, 255, 255, 0.2)' },
+                            ticks: { color: '#00ffff', font: { family: 'Orbitron' } }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: { color: 'rgba(0, 255, 255, 0.2)' },
+                            ticks: { color: '#00ffff', font: { family: 'Orbitron' } }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#ffaa00', font: { family: 'Orbitron' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateMissionControl(data) {
+            totalEvents++;
+            eventTimes.push(Date.now());
+            lastDataTime = Date.now();
+            
+            // Keep only last minute for rate calculation
+            const oneMinuteAgo = Date.now() - 60000;
+            eventTimes = eventTimes.filter(time => time > oneMinuteAgo);
+            
+            // Update holographic displays
+            document.getElementById('temperature').textContent = data.temperature.toFixed(1);
+            document.getElementById('humidity').textContent = data.humidity.toFixed(1);
+            document.getElementById('gasLevel').textContent = data.gas;
+            
+            // Update advanced status orbs and text
+            updateStatusOrb('temp', data.temperature, thresholds.tempWarn, thresholds.tempDanger);
+            updateStatusOrb('humid', data.humidity, thresholds.humidWarn, thresholds.humidDanger);
+            updateStatusOrb('gas', data.gas, thresholds.gasWarn, thresholds.gasDanger);
+            
+            // Calculate overall mission status
+            const missionStatus = calculateMissionStatus(data);
+            updateMissionStatus(missionStatus);
+            
+            // Update advanced charts
+            updateAdvancedCharts(data);
+            
+            // Update mission statistics
+            document.getElementById('totalEvents').textContent = totalEvents.toLocaleString();
+            
+            // Check for critical alerts
+            checkCriticalAlerts(data);
+        }
+
+        function updateStatusOrb(sensor, value, warnThreshold, dangerThreshold) {
+            const orb = document.getElementById(`${sensor}Orb`);
+            const statusText = document.getElementById(`${sensor}Status`);
+            
+            let status, message;
+            
+            if (value > dangerThreshold) {
+                status = 'danger';
+                message = '🔴 CRITICAL THREAT DETECTED';
+            } else if (value > warnThreshold) {
+                status = 'warn';
+                message = '🟡 WARNING THRESHOLD EXCEEDED';
+            } else {
+                status = 'ok';
+                message = '🟢 PARAMETERS NOMINAL';
+            }
+            
+            orb.className = `status-orb ${status}`;
+            statusText.textContent = message;
+        }
+
+        function calculateMissionStatus(data) {
+            const tempThreat = data.temperature > thresholds.tempDanger ? 3 : 
+                             data.temperature > thresholds.tempWarn ? 2 : 1;
+            const humidThreat = data.humidity > thresholds.humidDanger ? 3 : 
+                               data.humidity > thresholds.humidWarn ? 2 : 1;
+            const gasThreat = data.gas > thresholds.gasDanger ? 3 : 
+                             data.gas > thresholds.gasWarn ? 2 : 1;
+            
+            const maxThreat = Math.max(tempThreat, humidThreat, gasThreat);
+            
+            if (maxThreat === 3) return { level: 'CRITICAL', status: 'danger' };
+            if (maxThreat === 2) return { level: 'ELEVATED', status: 'warn' };
+            return { level: 'NOMINAL', status: 'ok' };
+        }
+
+        function updateMissionStatus(status) {
+            const orb = document.getElementById('systemOrb');
+            const statusDisplay = document.getElementById('overallStatus');
+            const statusText = document.getElementById('systemStatusText');
+            
+            orb.className = `status-orb ${status.status}`;
+            statusDisplay.textContent = status.level;
+            
+            const messages = {
+                'CRITICAL': '🚨 IMMEDIATE EVACUATION REQUIRED',
+                'ELEVATED': '⚠️ ENHANCED MONITORING ACTIVE',
+                'NOMINAL': '✅ ALL SYSTEMS OPERATIONAL'
+            };
+            
+            statusText.textContent = messages[status.level];
+            
+            // Update risk assessment
+            document.getElementById('riskLevel').textContent = status.level;
+        }
+
+        function updateAdvancedCharts(data) {
+            const timestamp = new Date().toLocaleTimeString();
+            
+            // Environment Chart
+            environmentChart.data.labels.push(timestamp);
+            environmentChart.data.datasets[0].data.push(data.temperature);
+            environmentChart.data.datasets[1].data.push(data.humidity);
+            
+            // Gas Chart
+            gasChart.data.labels.push(timestamp);
+            gasChart.data.datasets[0].data.push(data.gas);
+            
+            // Combined Chart (normalized values)
+            combinedChart.data.labels.push(timestamp);
+            combinedChart.data.datasets[0].data.push(data.temperature);
+            combinedChart.data.datasets[1].data.push(data.humidity);
+            combinedChart.data.datasets[2].data.push(data.gas / 10); // Scale gas for visibility
+            
+            // Keep only last 30 data points
+            [environmentChart, gasChart, combinedChart].forEach(chart => {
+                if (chart.data.labels.length > 30) {
+                    chart.data.labels.shift();
+                    chart.data.datasets.forEach(dataset => dataset.data.shift());
+                }
+                chart.update('none');
+            });
+        }
+
+        function checkCriticalAlerts(data) {
+            const criticalAlert = document.getElementById('criticalAlert');
+            const isCritical = data.temperature > thresholds.tempDanger || 
+                              data.humidity > thresholds.humidDanger || 
+                              data.gas > thresholds.gasDanger;
+            
+            if (isCritical) {
+                criticalAlert.classList.add('active');
+            } else {
+                criticalAlert.classList.remove('active');
+            }
+        }
+
+        function updateMissionTime() {
+            const elapsed = Date.now() - startTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            document.getElementById('uptime').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function calculateDataMetrics() {
+            const currentRate = eventTimes.length;
+            document.getElementById('dataRate').textContent = currentRate;
+            
+            // Calculate sensor health based on data freshness
+            const timeSinceData = Date.now() - lastDataTime;
+            let health = 100;
+            
+            if (timeSinceData > 5000) health = 75;
+            if (timeSinceData > 10000) health = 50;
+            if (timeSinceData > 30000) health = 0;
+            
+            document.getElementById('sensorHealth').textContent = `${health}%`;
+        }
+
+        function updateEfficiency() {
+            // Simulate neural efficiency with slight variation
+            const baseEfficiency = 98.7;
+            const variation = (Math.random() - 0.5) * 2; // ±1%
+            const efficiency = Math.max(95, Math.min(100, baseEfficiency + variation));
+            
+            document.getElementById('efficiency').textContent = `${efficiency.toFixed(1)}%`;
+        }
+    </script>
+</body>
+</html>

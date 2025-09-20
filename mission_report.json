@@ -1,0 +1,34 @@
+{
+  "mission_id": "MARS-SENTINEL-20250830-203407",
+  "analysis_timestamp": "2025-08-30T20:34:07.275252",
+  "summary": {
+    "total_events": 41,
+    "mission_duration": 8.0,
+    "safety_score": 54.8780487804878,
+    "status_counts": {
+      "OK": 13,
+      "WARN": 19,
+      "DANGER": 9
+    },
+    "alarm_types": {
+      "Temperature Warning": 19,
+      "Obstacle Warning": 9,
+      "Temperature Critical": 9,
+      "Obstacle Too Close": 8,
+      "Gas Contamination Critical": 6,
+      "Edge/Fall Risk Detected": 4,
+      "Gas Contamination Warning": 3
+    },
+    "temperature_stats": {
+      "min": 21.2,
+      "max": 48.1,
+      "avg": 31.92926829268293
+    }
+  },
+  "recommendations": [
+    "Review EVA procedures and safety protocols",
+    "Check thermal management systems",
+    "Inspect life support and air filtration",
+    "Improve navigation and proximity awareness"
+  ]
+}

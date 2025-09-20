@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 MARS-SENTINEL Dashboard (Polling)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0;
+            background: linear-gradient(135deg, #0c1445 0%, #1e3c72 50%, #2a5298 100%);
+            color: white; min-height: 100vh;
+        }
+        
+        header {
+            background: rgba(0,0,0,0.3); padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .title { font-size: 2rem; font-weight: bold; }
+        .controls { display: flex; gap: 15px; align-items: center; }
+        select, button {
+            padding: 10px 15px; border-radius: 8px; border: none;
+            font-size: 1rem; cursor: pointer; font-weight: 600;
+        }
+        
+        button {
+            background: #ff6b35; color: white;
+            transition: background 0.3s ease;
+        }
+        button:hover { background: #e55a2b; }
+        
+        .status-indicator {
+            padding: 8px 16px; border-radius: 20px;
+            font-weight: bold; font-size: 0.9rem;
+        }
+        .status-connected { background: #28a745; }
+        .status-disconnected { background: #dc3545; }
+        
+        main {
+            padding: 20px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px; max-width: 1400px; margin: 0 auto;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.1); border-radius: 15px;
+            padding: 25px; backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); }
+        
+        .card h3 { margin: 0 0 15px 0; font-size: 1.2rem; color: #b3d9ff; }
+        .sensor-value {
+            font-size: 3rem; font-weight: bold; margin: 10px 0;
+            text-align: center;
+        }
+        .sensor-unit { font-size: 1.2rem; opacity: 0.8; }
+        
+        .status-badge {
+            padding: 8px 16px; border-radius: 20px; font-weight: bold;
+            text-align: center; margin: 10px 0; font-size: 1.1rem;
+        }
+        .status-OK { background: #28a745; }
+        .status-WARN { background: #ffc107; color: #000; }
+        .status-DANGER { background: #dc3545; animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        .alarms {
+            margin-top: 15px; padding: 10px; background: rgba(220,53,69,0.2);
+            border-radius: 8px; min-height: 20px; font-weight: bold;
+        }
+        
+        .log-container {
+            grid-column: 1 / -1; max-height: 250px; overflow-y: auto;
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;
+            font-family: monospace; font-size: 0.9rem; line-height: 1.4;
+        }
+        
+        .update-info {
+            position: fixed; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;
+            font-size: 0.8rem;
+        }
+        
+        /* Density Monitor Styles */
+        .density-card {
+            grid-column: 1 / -1;
+            background: linear-gradient(45deg, rgba(0, 255, 136, 0.1), rgba(0, 123, 255, 0.1));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+        
+        .density-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .density-value {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff88;
+        }
+        
+        .density-unit {
+            font-size: 1.5rem;
+            color: #a0a0a0;
+            margin-left: 10px;
+        }
+        
+        .object-status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-weight: bold;
+            text-align: center;
+            border: 2px solid;
+        }
+        
+        .object-detected {
+            background: rgba(255, 107, 53, 0.2);
+            border-color: #ff6b35;
+            color: #ff6b35;
+        }
+        
+        .object-clear {
+            background: rgba(40, 167, 69, 0.2);
+            border-color: #28a745;
+            color: #28a745;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .density-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #a0a0a0;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        
+        .temp-stats, .humidity-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .temp-stats .stat-item {
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+        }
+        
+        .humidity-stats .stat-item {
+            background: rgba(0, 123, 255, 0.1);
+            border: 1px solid rgba(0, 123, 255, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            main { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 15px; }
+            .chart-grid { grid-template-columns: 1fr; }
+            .density-value { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="update-info" id="updateInfo">
+        Last Update: --
+    </div>
+    
+    <header>
+        <div class="title">🚀 MARS-SENTINEL Dashboard (Real Arduino)</div>
+        <div class="controls">
+            <div id="connectionStatus" class="status-indicator status-disconnected">
+                🔴 Connecting...
+            </div>
+            <select id="missionMode">
+                <option value="eva">🚶 EVA Mode</option>
+                <option value="mars">🔴 Mars Mode</option>
+                <option value="emergency">🚨 Emergency</option>
+                <option value="training">🎓 Training</option>
+            </select>
+            <button onclick="exportData()">📊 Export CSV</button>
+            <button onclick="refreshData()">🔄 Refresh</button>
+        </div>
+    </header>
+    
+    <main>
+        <div class="card">
+            <h3>🌡️ Temperature</h3>
+            <div id="tempValue" class="sensor-value">--</div>
+            <div class="sensor-unit">°C</div>
+            <div id="tempStatus" class="status-badge status-OK">OK</div>
+        </div>
+        
+        <div class="card">
+            <h3>💧 Humidity</h3>
+            <div id="humidValue" class="sensor-value">--</div>
+            <div class="sensor-unit">%</div>
+        </div>
+        
+        <div class="card">
+            <h3>☣️ Gas Level</h3>
+            <div id="gasValue" class="sensor-value">--</div>
+            <div class="sensor-unit">ppm</div>
+        </div>
+        
+        <div class="card">
+            <h3>📏 Distance</h3>
+            <div id="distValue" class="sensor-value">--</div>
+            <div class="sensor-unit">cm</div>
+        </div>
+        
+        <div class="card">
+            <h3>👁️ Edge Detection</h3>
+            <div id="irValue" class="sensor-value">--</div>
+            <div class="sensor-unit">status</div>
+        </div>
+        
+        <div class="card">
+            <h3>🚨 System Alarms</h3>
+            <div id="alarmsList" class="alarms">No active alarms</div>
+        </div>
+        
+        <!-- Object Detection & Density Monitor -->
+        <div class="card density-card">
+            <h3>🔬 Object Detection & Mass Density Analysis</h3>
+            
+            <div class="density-display">
+                <div class="density-value" id="densityValue">1.225</div>
+                <span class="density-unit">kg/m³</span>
+            </div>
+            
+            <div id="objectStatus" class="object-status object-clear">
+                🟢 No Object Detected - Air Density Normal
+            </div>
+            
+            <div class="density-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Current Distance</div>
+                    <div class="stat-value" id="currentDistance">400 cm</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Object Volume</div>
+                    <div class="stat-value" id="objectVolume">0 m³</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Estimated Mass</div>
+                    <div class="stat-value" id="estimatedMass">0 kg</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Material Type</div>
+                    <div class="stat-value" id="materialType">Air</div>
+                </div>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <canvas id="densityTrendChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="densityBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Temperature Trends -->
+        <div class="card">
+            <h3>🌡️ Temperature Trends</h3>
+            <div class="temp-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Current</div>
+                    <div class="stat-value" id="currentTemp">--°C</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Average</div>
+                    <div class="stat-value" id="avgTemp">--°C</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Min/Max</div>
+                    <div class="stat-value" id="minMaxTemp">--/--°C</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Trend</div>
+                    <div class="stat-value" id="tempTrend">📈 Stable</div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="temperatureTrendChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Humidity Trends -->
+        <div class="card">
+            <h3>💧 Humidity Trends</h3>
+            <div class="humidity-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Current</div>
+                    <div class="stat-value" id="currentHumidity">--%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Average</div>
+                    <div class="stat-value" id="avgHumidity">--%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Min/Max</div>
+                    <div class="stat-value" id="minMaxHumidity">--/--%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Comfort Level</div>
+                    <div class="stat-value" id="comfortLevel">😐 Moderate</div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="humidityTrendChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="card log-container">
+            <h3>📝 Event Log (Real Arduino Data)</h3>
+            <div id="eventLog">Loading sensor data...</div>
+        </div>
+    </main>
+
+    <script>
+        let updateInterval;
+        let eventCount = 0;
+        
+        // Density monitoring variables
+        let densityChart, barChart, temperatureChart, humidityChart;
+        let densityHistory = [];
+        let temperatureHistory = [];
+        let humidityHistory = [];
+        let lastDistance = 400;
+        let baselineDensity = 1.225; // kg/m³ for air at standard conditions
+        let objectDetected = false;
+        
+        // Material database for density estimation
+        const materialDatabase = {
+            'air': { density: 1.225, color: '#87CEEB' },
+            'water': { density: 1000, color: '#0077be' },
+            'plastic': { density: 950, color: '#ff6b35' },
+            'wood': { density: 600, color: '#8B4513' },
+            'aluminum': { density: 2700, color: '#C0C0C0' },
+            'steel': { density: 7850, color: '#36454F' },
+            'concrete': { density: 2400, color: '#808080' },
+            'rock': { density: 2500, color: '#696969' }
+        };
+        
+        // Initialize charts
+        function initializeCharts() {
+            // Density Trend Chart
+            const trendCtx = document.getElementById('densityTrendChart').getContext('2d');
+            densityChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Density (kg/m³)',
+                        data: [],
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { 
+                            display: true, 
+                            text: 'Density Trend Over Time',
+                            color: '#ffffff'
+                        },
+                        legend: { labels: { color: '#ffffff' } }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: { 
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+            
+            // Density Bar Chart
+            const barCtx = document.getElementById('densityBarChart').getContext('2d');
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Current', 'Air', 'Water', 'Plastic', 'Wood', 'Aluminum'],
+                    datasets: [{
+                        label: 'Density (kg/m³)',
+                        data: [1.225, 1.225, 1000, 950, 600, 2700],
+                        backgroundColor: [
+                            '#00ff88',
+                            '#87CEEB',
+                            '#0077be',
+                            '#ff6b35',
+                            '#8B4513',
+                            '#C0C0C0'
+                        ],
+                        borderColor: '#ffffff',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { 
+                            display: true, 
+                            text: 'Density Comparison',
+                            color: '#ffffff'
+                        },
+                        legend: { labels: { color: '#ffffff' } }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: { 
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Temperature Trend Chart
+            const tempCtx = document.getElementById('temperatureTrendChart').getContext('2d');
+            temperatureChart = new Chart(tempCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: [],
+                        borderColor: '#ff6b35',
+                        backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { 
+                            display: true, 
+                            text: 'Temperature Over Time',
+                            color: '#ffffff'
+                        },
+                        legend: { labels: { color: '#ffffff' } }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: { 
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+            
+            // Humidity Trend Chart
+            const humidCtx = document.getElementById('humidityTrendChart').getContext('2d');
+            humidityChart = new Chart(humidCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Humidity (%)',
+                        data: [],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { 
+                            display: true, 
+                            text: 'Humidity Over Time',
+                            color: '#ffffff'
+                        },
+                        legend: { labels: { color: '#ffffff' } }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: { 
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            min: 0,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Calculate density based on object detection
+        function calculateDensity(distance, temperature, humidity, gasLevel) {
+            // Base air density calculation
+            const tempK = temperature + 273.15;
+            const pressure = 101.3; // kPa (standard)
+            
+            // Ideal gas law for air density
+            let airDensity = (pressure * 1000 * 0.02897) / (8.314 * tempK);
+            
+            // Adjust for humidity
+            const humidityFactor = 1 - (humidity / 100) * 0.0378;
+            airDensity *= humidityFactor;
+            
+            // Object detection logic
+            const detectionThreshold = 350; // cm
+            const wasObjectDetected = objectDetected;
+            objectDetected = distance < detectionThreshold;
+            
+            let currentDensity = airDensity;
+            let detectedMaterial = 'air';
+            let objectVolume = 0;
+            let estimatedMass = 0;
+            
+            if (objectDetected) {
+                // Calculate object volume (simplified as rectangular block)
+                const objectDistance = detectionThreshold - distance;
+                const estimatedWidth = 10; // cm
+                const estimatedHeight = 10; // cm
+                objectVolume = (objectDistance * estimatedWidth * estimatedHeight) / 1000000; // m³
+                
+                // Estimate material based on distance change patterns
+                const distanceChange = Math.abs(lastDistance - distance);
+                
+                if (distanceChange > 50) {
+                    // Fast movement - likely light material
+                    detectedMaterial = distanceChange > 100 ? 'plastic' : 'wood';
+                } else if (distanceChange > 20) {
+                    // Moderate movement - medium density
+                    detectedMaterial = gasLevel > 20 ? 'concrete' : 'water';
+                } else if (distanceChange > 5) {
+                    // Slow movement - heavy material
+                    detectedMaterial = 'aluminum';
+                } else {
+                    // Very slow - very heavy
+                    detectedMaterial = 'steel';
+                }
+                
+                currentDensity = materialDatabase[detectedMaterial].density;
+                estimatedMass = currentDensity * objectVolume;
+                
+                // Update status
+                document.getElementById('objectStatus').innerHTML = 
+                    `🔴 Object Detected! Material: ${detectedMaterial.toUpperCase()}`;
+                document.getElementById('objectStatus').className = 'object-status object-detected';
+            } else {
+                document.getElementById('objectStatus').innerHTML = 
+                    '🟢 No Object Detected - Air Density Normal';
+                document.getElementById('objectStatus').className = 'object-status object-clear';
+            }
+            
+            // Update display values
+            document.getElementById('densityValue').textContent = currentDensity.toFixed(3);
+            document.getElementById('currentDistance').textContent = distance + ' cm';
+            document.getElementById('objectVolume').textContent = (objectVolume * 1000).toFixed(1) + ' L';
+            document.getElementById('estimatedMass').textContent = estimatedMass.toFixed(2) + ' kg';
+            document.getElementById('materialType').textContent = detectedMaterial.charAt(0).toUpperCase() + detectedMaterial.slice(1);
+            
+            // Update charts
+            updateDensityChart(currentDensity);
+            updateBarChart(currentDensity, detectedMaterial);
+            
+            lastDistance = distance;
+            return currentDensity;
+        }
+        
+        // Update density trend chart
+        function updateDensityChart(density) {
+            const now = new Date().toLocaleTimeString();
+            
+            densityHistory.push({ time: now, density: density });
+            
+            // Keep only last 20 data points
+            if (densityHistory.length > 20) {
+                densityHistory.shift();
+            }
+            
+            densityChart.data.labels = densityHistory.map(d => d.time);
+            densityChart.data.datasets[0].data = densityHistory.map(d => d.density);
+            densityChart.update('none'); // No animation for smooth real-time updates
+        }
+        
+        // Update density comparison bar chart
+        function updateBarChart(currentDensity, materialType) {
+            barChart.data.datasets[0].data[0] = currentDensity;
+            
+            // Highlight detected material
+            const colors = [
+                '#00ff88', // Current (always green)
+                '#87CEEB', // Air
+                '#0077be', // Water  
+                '#ff6b35', // Plastic
+                '#8B4513', // Wood
+                '#C0C0C0'  // Aluminum
+            ];
+            
+            // If object detected, highlight the matching material
+            if (materialType !== 'air') {
+                const materialIndex = ['current', 'air', 'water', 'plastic', 'wood', 'aluminum'].indexOf(materialType);
+                if (materialIndex > 0) {
+                    colors[materialIndex] = '#ff6b35'; // Highlight detected material
+                }
+            }
+            
+            barChart.data.datasets[0].backgroundColor = colors;
+            barChart.update('none');
+        }
+        
+        // Update temperature trend chart and statistics
+        function updateTemperatureTrend(temperature) {
+            const now = new Date().toLocaleTimeString();
+            
+            temperatureHistory.push({ time: now, value: temperature });
+            
+            // Keep only last 30 data points
+            if (temperatureHistory.length > 30) {
+                temperatureHistory.shift();
+            }
+            
+            // Update chart
+            temperatureChart.data.labels = temperatureHistory.map(d => d.time);
+            temperatureChart.data.datasets[0].data = temperatureHistory.map(d => d.value);
+            temperatureChart.update('none');
+            
+            // Calculate statistics
+            if (temperatureHistory.length > 1) {
+                const temps = temperatureHistory.map(d => d.value);
+                const avg = temps.reduce((a, b) => a + b, 0) / temps.length;
+                const min = Math.min(...temps);
+                const max = Math.max(...temps);
+                
+                // Calculate trend
+                const recent = temps.slice(-5); // Last 5 readings
+                const older = temps.slice(-10, -5); // 5 readings before that
+                let trendText = '📈 Stable';
+                
+                if (recent.length >= 3 && older.length >= 3) {
+                    const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+                    const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
+                    const diff = recentAvg - olderAvg;
+                    
+                    if (diff > 0.5) trendText = '🔥 Rising';
+                    else if (diff < -0.5) trendText = '❄️ Falling';
+                    else trendText = '📈 Stable';
+                }
+                
+                // Update display
+                document.getElementById('currentTemp').textContent = temperature.toFixed(1) + '°C';
+                document.getElementById('avgTemp').textContent = avg.toFixed(1) + '°C';
+                document.getElementById('minMaxTemp').textContent = `${min.toFixed(1)}/${max.toFixed(1)}°C`;
+                document.getElementById('tempTrend').textContent = trendText;
+            }
+        }
+        
+        // Update humidity trend chart and statistics
+        function updateHumidityTrend(humidity) {
+            const now = new Date().toLocaleTimeString();
+            
+            humidityHistory.push({ time: now, value: humidity });
+            
+            // Keep only last 30 data points
+            if (humidityHistory.length > 30) {
+                humidityHistory.shift();
+            }
+            
+            // Update chart
+            humidityChart.data.labels = humidityHistory.map(d => d.time);
+            humidityChart.data.datasets[0].data = humidityHistory.map(d => d.value);
+            humidityChart.update('none');
+            
+            // Calculate statistics
+            if (humidityHistory.length > 1) {
+                const humidities = humidityHistory.map(d => d.value);
+                const avg = humidities.reduce((a, b) => a + b, 0) / humidities.length;
+                const min = Math.min(...humidities);
+                const max = Math.max(...humidities);
+                
+                // Determine comfort level
+                let comfortText = '😐 Moderate';
+                if (humidity < 30) comfortText = '🏜️ Too Dry';
+                else if (humidity < 40) comfortText = '😕 Dry';
+                else if (humidity <= 60) comfortText = '😊 Comfortable';
+                else if (humidity <= 70) comfortText = '😅 Humid';
+                else comfortText = '💧 Too Humid';
+                
+                // Update display
+                document.getElementById('currentHumidity').textContent = humidity.toFixed(1) + '%';
+                document.getElementById('avgHumidity').textContent = avg.toFixed(1) + '%';
+                document.getElementById('minMaxHumidity').textContent = `${min.toFixed(1)}/${max.toFixed(1)}%`;
+                document.getElementById('comfortLevel').textContent = comfortText;
+            }
+        }
+        
+        async function fetchSensorData() {
+            try {
+                const response = await fetch('/api/events?limit=5');
+                const events = await response.json();
+                
+                if (events && events.length > 0) {
+                    const latestEvent = events[events.length - 1];
+                    updateDashboard(latestEvent);
+                    updateEventLog(events);
+                    
+                    // Update connection status
+                    document.getElementById('connectionStatus').textContent = '🟢 Connected';
+                    document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+                    
+                    // Update last update time
+                    document.getElementById('updateInfo').textContent = 
+                        `Last Update: ${new Date().toLocaleTimeString()} | Events: ${eventCount}`;
+                    
+                    eventCount++;
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('connectionStatus').textContent = '🔴 Connection Error';
+                document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+            }
+        }
+        
+        function updateDashboard(data) {
+            // Update sensor values
+            document.getElementById('tempValue').textContent = data.temperature?.toFixed(1) || '--';
+            document.getElementById('humidValue').textContent = data.humidity?.toFixed(1) || '--';
+            document.getElementById('gasValue').textContent = data.gas_level || '--';
+            document.getElementById('distValue').textContent = data.distance || '--';
+            document.getElementById('irValue').textContent = data.ir_detection ? 'DETECTED' : 'CLEAR';
+            
+            // Update temperature and humidity trends
+            if (data.temperature !== undefined && data.temperature !== null) {
+                updateTemperatureTrend(parseFloat(data.temperature));
+            }
+            if (data.humidity !== undefined && data.humidity !== null) {
+                updateHumidityTrend(parseFloat(data.humidity));
+            }
+            
+            // Calculate and update density based on object detection
+            if (data.distance && data.temperature && data.humidity && data.gas_level) {
+                calculateDensity(
+                    parseFloat(data.distance), 
+                    parseFloat(data.temperature), 
+                    parseFloat(data.humidity), 
+                    parseFloat(data.gas_level)
+                );
+            }
+            
+            // Update status
+            const statusEl = document.getElementById('tempStatus');
+            statusEl.textContent = data.status;
+            statusEl.className = `status-badge status-${data.status}`;
+            
+            // Update alarms
+            const alarmsEl = document.getElementById('alarmsList');
+            if (data.alarms && data.alarms.length > 0) {
+                alarmsEl.innerHTML = data.alarms.map(alarm => `🚨 ${alarm}`).join('<br>');
+            } else {
+                alarmsEl.textContent = 'No active alarms';
+            }
+            
+            // Update mission mode
+            if (data.mode) {
+                document.getElementById('missionMode').value = data.mode;
+            }
+        }
+        
+        function updateEventLog(events) {
+            const logEl = document.getElementById('eventLog');
+            const logEntries = events.map(event => {
+                const time = new Date(event.timestamp).toLocaleTimeString();
+                return `[${time}] T:${event.temperature?.toFixed(1)}°C H:${event.humidity?.toFixed(1)}% ` +
+                       `G:${event.gas_level}ppm D:${event.distance}cm IR:${event.ir_detection} Status:${event.status}`;
+            });
+            logEl.innerHTML = logEntries.reverse().join('<br>');
+        }
+        
+        function refreshData() {
+            fetchSensorData();
+        }
+        
+        function exportData() {
+            window.open('/api/export', '_blank');
+        }
+        
+        // Mission mode change handler
+        document.getElementById('missionMode').addEventListener('change', async (e) => {
+            try {
+                await fetch('/api/mission_mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: e.target.value })
+                });
+                fetchSensorData(); // Refresh data after mode change
+            } catch (error) {
+                console.error('Failed to update mission mode:', error);
+            }
+        });
+        
+        // Start automatic updates
+        function startUpdates() {
+            fetchSensorData(); // Initial fetch
+            updateInterval = setInterval(fetchSensorData, 1000); // Update every second
+        }
+        
+        function stopUpdates() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        }
+        
+        // Start when page loads
+        window.onload = function() {
+            initializeCharts();
+            startUpdates();
+        };
+        window.onbeforeunload = stopUpdates;
+    </script>
+</body>
+</html>

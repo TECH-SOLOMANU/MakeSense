@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MARS-SENTINEL Density Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #00ff88;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff88;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #a0a0a0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .card h2 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .density-display {
+            grid-column: span 2;
+            text-align: center;
+            background: linear-gradient(45deg, rgba(0, 255, 136, 0.1), rgba(0, 123, 255, 0.1));
+        }
+
+        .density-value {
+            font-size: 4em;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 30px #00ff88;
+            margin: 20px 0;
+        }
+
+        .density-unit {
+            font-size: 1.5em;
+            color: #a0a0a0;
+            margin-left: 10px;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .sensor-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sensor-label {
+            font-size: 0.9em;
+            color: #a0a0a0;
+            margin-bottom: 5px;
+        }
+
+        .sensor-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .calculator-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1.1em;
+        }
+
+        .calculator-input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #00ff88, #00cc6a);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .result-display {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid #00ff88;
+        }
+
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-ok { background: #00ff88; }
+        .status-warn { background: #ffa500; }
+        .status-danger { background: #ff4444; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .formula-display {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            color: #00ff88;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .density-display {
+                grid-column: span 1;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+            .density-value {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🪐 MARS-SENTINEL Density Monitor</h1>
+        <p>Advanced Atmospheric & Material Density Analysis System</p>
+    </div>
+
+    <div class="container">
+        <!-- Air Density Display -->
+        <div class="card density-display">
+            <h2>
+                <div class="status-indicator status-ok" id="densityStatus"></div>
+                Atmospheric Density
+            </h2>
+            <div class="density-value" id="airDensity">1.225</div>
+            <span class="density-unit">kg/m³</span>
+            
+            <div class="formula-display">
+                ρ = (P × M) / (R × T)
+                <br><small>Where: P=Pressure, M=Molar Mass, R=Gas Constant, T=Temperature</small>
+            </div>
+
+            <div class="sensor-grid">
+                <div class="sensor-item">
+                    <div class="sensor-label">Temperature</div>
+                    <div class="sensor-value" id="temperature">22.5°C</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">Humidity</div>
+                    <div class="sensor-value" id="humidity">45.2%</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">Pressure</div>
+                    <div class="sensor-value" id="pressure">101.3 kPa</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">Gas Level</div>
+                    <div class="sensor-value" id="gasLevel">15 ppm</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Material Density Calculator -->
+        <div class="card">
+            <h2>⚖️ Material Density Calculator</h2>
+            
+            <label for="mass">Mass (kg):</label>
+            <input type="number" id="mass" class="calculator-input" placeholder="Enter mass..." step="0.001">
+            
+            <label for="volume">Volume (m³):</label>
+            <input type="number" id="volume" class="calculator-input" placeholder="Enter volume..." step="0.001">
+            
+            <button class="calculate-btn" onclick="calculateMaterialDensity()">Calculate Density</button>
+            
+            <div class="result-display" id="materialResult" style="display: none;">
+                <strong>Material Density: </strong><span id="materialDensity">0</span> kg/m³
+                <br><small id="materialComparison"></small>
+            </div>
+        </div>
+
+        <!-- Gas Density Monitor -->
+        <div class="card">
+            <h2>🧪 Gas Density Monitor</h2>
+            
+            <div class="sensor-grid">
+                <div class="sensor-item">
+                    <div class="sensor-label">CO₂ Equivalent</div>
+                    <div class="sensor-value" id="co2Density">1.98 kg/m³</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">Air Quality Index</div>
+                    <div class="sensor-value" id="airQuality">Good</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div id="gasChart">
+                    <p style="color: #a0a0a0;">📊 Gas Density Trends<br><small>Real-time visualization coming online...</small></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Density Database -->
+        <div class="card">
+            <h2>📚 Material Database</h2>
+            
+            <div id="materialDatabase">
+                <div class="sensor-item">
+                    <div class="sensor-label">Water</div>
+                    <div class="sensor-value">1000 kg/m³</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">Aluminum</div>
+                    <div class="sensor-value">2700 kg/m³</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">Steel</div>
+                    <div class="sensor-value">7850 kg/m³</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">Air (STP)</div>
+                    <div class="sensor-value">1.225 kg/m³</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">CO₂</div>
+                    <div class="sensor-value">1.98 kg/m³</div>
+                </div>
+                <div class="sensor-item">
+                    <div class="sensor-label">Hydrogen</div>
+                    <div class="sensor-value">0.0899 kg/m³</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sensor data simulation and real-time updates
+        let sensorData = {
+            temperature: 22.5,
+            humidity: 45.2,
+            pressure: 101.3,
+            gasLevel: 15
+        };
+
+        // Material density database
+        const materialDatabase = {
+            'water': 1000,
+            'aluminum': 2700,
+            'steel': 7850,
+            'air': 1.225,
+            'co2': 1.98,
+            'hydrogen': 0.0899,
+            'concrete': 2400,
+            'wood': 600,
+            'plastic': 950,
+            'glass': 2500
+        };
+
+        // Calculate air density
+        function calculateAirDensity(temp, humidity, pressure) {
+            // Convert temperature to Kelvin
+            const tempK = temp + 273.15;
+            
+            // Ideal gas law: ρ = (P × M) / (R × T)
+            // For dry air: M = 28.97 g/mol, R = 8.314 J/(mol·K)
+            const dryAirDensity = (pressure * 1000 * 0.02897) / (8.314 * tempK);
+            
+            // Adjust for humidity (water vapor is less dense)
+            const humidityFactor = 1 - (humidity / 100) * 0.0378;
+            
+            return dryAirDensity * humidityFactor;
+        }
+
+        // Update air density display
+        function updateAirDensity() {
+            const density = calculateAirDensity(sensorData.temperature, sensorData.humidity, sensorData.pressure);
+            document.getElementById('airDensity').textContent = density.toFixed(4);
+            
+            // Update status indicator
+            const status = document.getElementById('densityStatus');
+            if (density < 1.0 || density > 1.5) {
+                status.className = 'status-indicator status-warn';
+            } else {
+                status.className = 'status-indicator status-ok';
+            }
+        }
+
+        // Calculate material density
+        function calculateMaterialDensity() {
+            const mass = parseFloat(document.getElementById('mass').value);
+            const volume = parseFloat(document.getElementById('volume').value);
+            
+            if (!mass || !volume || volume <= 0) {
+                alert('Please enter valid mass and volume values.');
+                return;
+            }
+            
+            const density = mass / volume;
+            
+            document.getElementById('materialDensity').textContent = density.toFixed(3);
+            document.getElementById('materialResult').style.display = 'block';
+            
+            // Find closest material match
+            let closestMaterial = '';
+            let closestDiff = Infinity;
+            
+            for (const [material, refDensity] of Object.entries(materialDatabase)) {
+                const diff = Math.abs(density - refDensity);
+                if (diff < closestDiff) {
+                    closestDiff = diff;
+                    closestMaterial = material;
+                }
+            }
+            
+            document.getElementById('materialComparison').textContent = 
+                `Closest match: ${closestMaterial.charAt(0).toUpperCase() + closestMaterial.slice(1)} (${materialDatabase[closestMaterial]} kg/m³)`;
+        }
+
+        // Simulate sensor data updates
+        function updateSensorData() {
+            // Simulate small variations in sensor readings
+            sensorData.temperature += (Math.random() - 0.5) * 0.5;
+            sensorData.humidity += (Math.random() - 0.5) * 2;
+            sensorData.pressure += (Math.random() - 0.5) * 0.2;
+            sensorData.gasLevel += Math.floor((Math.random() - 0.5) * 4);
+            
+            // Keep values in realistic ranges
+            sensorData.temperature = Math.max(15, Math.min(35, sensorData.temperature));
+            sensorData.humidity = Math.max(20, Math.min(80, sensorData.humidity));
+            sensorData.pressure = Math.max(95, Math.min(105, sensorData.pressure));
+            sensorData.gasLevel = Math.max(10, Math.min(30, sensorData.gasLevel));
+            
+            // Update display
+            document.getElementById('temperature').textContent = sensorData.temperature.toFixed(1) + '°C';
+            document.getElementById('humidity').textContent = sensorData.humidity.toFixed(1) + '%';
+            document.getElementById('pressure').textContent = sensorData.pressure.toFixed(1) + ' kPa';
+            document.getElementById('gasLevel').textContent = sensorData.gasLevel + ' ppm';
+            
+            // Update air density
+            updateAirDensity();
+            
+            // Update gas density
+            const gasDensity = (sensorData.gasLevel / 1000000) * materialDatabase.co2 + materialDatabase.air;
+            document.getElementById('co2Density').textContent = gasDensity.toFixed(3) + ' kg/m³';
+            
+            // Update air quality
+            let airQuality = 'Good';
+            if (sensorData.gasLevel > 25) airQuality = 'Moderate';
+            if (sensorData.gasLevel > 35) airQuality = 'Poor';
+            document.getElementById('airQuality').textContent = airQuality;
+        }
+
+        // Try to connect to MARS-SENTINEL backend for real data
+        async function connectToMARSSentinel() {
+            try {
+                const response = await fetch('http://localhost:5000/api/sensors');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.sensors) {
+                        // Use real sensor data
+                        sensorData.temperature = data.sensors.temperature || sensorData.temperature;
+                        sensorData.humidity = data.sensors.humidity || sensorData.humidity;
+                        sensorData.gasLevel = data.sensors.gas || sensorData.gasLevel;
+                        
+                        console.log('Connected to MARS-SENTINEL:', data);
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.log('MARS-SENTINEL not available, using simulated data');
+            }
+            return false;
+        }
+
+        // Initialize the application
+        async function init() {
+            console.log('🚀 MARS-SENTINEL Density Monitor Starting...');
+            
+            // Try to connect to real system
+            const connected = await connectToMARSSentinel();
+            
+            if (connected) {
+                console.log('✅ Connected to real MARS-SENTINEL data');
+                // Update every 2 seconds when connected to real system
+                setInterval(() => {
+                    connectToMARSSentinel();
+                    updateSensorData();
+                }, 2000);
+            } else {
+                console.log('📊 Using simulated sensor data');
+                // Update every 3 seconds with simulated data
+                setInterval(updateSensorData, 3000);
+            }
+            
+            // Initial update
+            updateSensorData();
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

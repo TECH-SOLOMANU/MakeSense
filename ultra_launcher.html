@@ -1,0 +1,58 @@
+// Quick Ultra Dashboard Launcher
+// This will open the ultra UI and connect to your running backend
+
+function launchUltraUI() {
+    // Open the ultra dashboard in a new window
+    const ultraWindow = window.open('', 'UltraUI', 'width=1400,height=900');
+    
+    // Load the ultra UI content
+    fetch('/MARS_SENTINEL_ULTRA_UI.html')
+        .then(response => response.text())
+        .then(html => {
+            ultraWindow.document.write(html);
+            ultraWindow.document.close();
+        })
+        .catch(() => {
+            // If file not accessible via HTTP, redirect to file URL
+            ultraWindow.location.href = 'file:///c:/Users/solom/miniprojets/MakeSense/MARS_SENTINEL_ULTRA_UI.html';
+        });
+}
+
+// Auto-launch after 2 seconds
+setTimeout(launchUltraUI, 2000);
+
+// Manual launch button
+document.body.innerHTML = `
+    <div style="
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        height: 100vh; 
+        background: linear-gradient(45deg, #0a0a0f, #1e3a8a); 
+        color: #00ffff; 
+        font-family: Orbitron, monospace;
+        text-align: center;
+    ">
+        <div>
+            <h1 style="font-size: 3em; margin-bottom: 30px;">🚀 MARS-SENTINEL ULTRA</h1>
+            <button onclick="launchUltraUI()" style="
+                background: linear-gradient(45deg, #FF4444, #00ff88);
+                border: none;
+                padding: 20px 40px;
+                font-size: 1.5em;
+                color: black;
+                border-radius: 25px;
+                cursor: pointer;
+                font-family: Orbitron, monospace;
+                font-weight: bold;
+                box-shadow: 0 0 30px rgba(0,255,255,0.5);
+            ">
+                🌟 LAUNCH ULTRA INTERFACE 🌟
+            </button>
+            <p style="margin-top: 20px; opacity: 0.8;">
+                Your MARS-SENTINEL is running with 5300+ events!<br>
+                Click to access the Ultra-Advanced UI
+            </p>
+        </div>
+    </div>
+`;

@@ -1,0 +1,42 @@
+timestamp,temperature,humidity,gas_level,ir_detection,distance,status,alarms,mode
+1756566184000,22.3,42.1,285,0,85,OK,,eva
+1756566184200,22.5,42.3,290,0,82,OK,,eva
+1756566184400,22.8,42.5,295,0,78,OK,,eva
+1756566184600,23.1,42.8,300,0,75,OK,,eva
+1756566184800,23.4,43.0,305,0,72,OK,,eva
+1756566185000,23.8,43.2,310,0,68,OK,,eva
+1756566185200,24.2,43.5,315,0,65,OK,,eva
+1756566185400,24.6,43.8,320,0,62,WARN,Temperature Warning,eva
+1756566185600,25.1,44.0,325,0,58,WARN,Temperature Warning,eva
+1756566185800,25.5,44.2,330,0,55,WARN,Temperature Warning,eva
+1756566186000,26.0,44.5,335,0,52,WARN,Temperature Warning,eva
+1756566186200,26.5,44.8,340,0,48,WARN,Temperature Warning|Obstacle Warning,eva
+1756566186400,27.2,45.0,345,0,45,WARN,Temperature Warning|Obstacle Warning,eva
+1756566186600,28.0,45.3,350,0,42,WARN,Temperature Warning|Obstacle Warning,eva
+1756566186800,29.1,45.5,360,0,38,WARN,Temperature Warning|Obstacle Warning,eva
+1756566187000,30.5,45.8,370,0,35,WARN,Temperature Warning|Obstacle Warning,eva
+1756566187200,32.2,46.0,380,0,32,WARN,Temperature Warning|Obstacle Warning,eva
+1756566187400,34.8,46.2,400,0,28,WARN,Temperature Warning|Obstacle Warning,eva
+1756566187600,37.5,46.5,420,0,25,WARN,Temperature Warning|Obstacle Warning,eva
+1756566187800,40.2,46.8,450,0,22,WARN,Temperature Warning|Obstacle Warning,eva
+1756566188000,43.1,47.0,480,0,19,DANGER,Temperature Critical|Obstacle Too Close,eva
+1756566188200,45.8,47.2,520,0,17,DANGER,Temperature Critical|Obstacle Too Close,eva
+1756566188400,47.2,47.5,560,0,15,DANGER,Temperature Critical|Obstacle Too Close,eva
+1756566188600,48.1,47.8,600,1,13,DANGER,Temperature Critical|Gas Contamination Critical|Edge/Fall Risk Detected|Obstacle Too Close,eva
+1756566188800,47.9,48.0,620,1,12,DANGER,Temperature Critical|Gas Contamination Critical|Edge/Fall Risk Detected|Obstacle Too Close,eva
+1756566189000,47.5,48.2,640,1,11,DANGER,Temperature Critical|Gas Contamination Critical|Edge/Fall Risk Detected|Obstacle Too Close,eva
+1756566189200,46.8,48.5,660,1,10,DANGER,Temperature Critical|Gas Contamination Critical|Edge/Fall Risk Detected|Obstacle Too Close,eva
+1756566189400,45.2,48.8,680,0,12,DANGER,Temperature Critical|Gas Contamination Critical|Obstacle Too Close,eva
+1756566189600,43.5,49.0,650,0,15,DANGER,Temperature Critical|Gas Contamination Critical,eva
+1756566189800,41.2,49.2,620,0,18,WARN,Temperature Warning|Gas Contamination Warning,eva
+1756566190000,38.8,49.5,580,0,22,WARN,Temperature Warning|Gas Contamination Warning,eva
+1756566190200,36.2,49.8,540,0,25,WARN,Temperature Warning|Gas Contamination Warning,eva
+1756566190400,33.5,50.0,500,0,28,WARN,Temperature Warning,eva
+1756566190600,30.8,50.2,460,0,32,WARN,Temperature Warning,eva
+1756566190800,28.2,50.5,420,0,35,WARN,Temperature Warning,eva
+1756566191000,25.8,50.8,380,0,38,OK,,eva
+1756566191200,23.5,51.0,340,0,42,OK,,eva
+1756566191400,22.2,51.2,310,0,45,OK,,eva
+1756566191600,21.8,51.5,290,0,48,OK,,eva
+1756566191800,21.5,51.8,285,0,52,OK,,eva
+1756566192000,21.2,52.0,280,0,55,OK,,eva

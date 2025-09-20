@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Astronaut Safety Dashboard</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0;
+            background: linear-gradient(135deg, #0c1445 0%, #1e3c72 50%, #2a5298 100%);
+            color: white; min-height: 100vh;
+        }
+        
+        header {
+            background: rgba(0,0,0,0.3); padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .title { font-size: 2rem; font-weight: bold; }
+        .controls { display: flex; gap: 15px; align-items: center; }
+        select, button {
+            padding: 10px 15px; border-radius: 8px; border: none;
+            font-size: 1rem; cursor: pointer; font-weight: 600;
+        }
+        
+        button {
+            background: #ff6b35; color: white;
+            transition: background 0.3s ease;
+        }
+        button:hover { background: #e55a2b; }
+        
+        .status-indicator {
+            padding: 8px 16px; border-radius: 20px;
+            font-weight: bold; font-size: 0.9rem;
+        }
+        .status-connected { background: #28a745; }
+        .status-disconnected { background: #dc3545; }
+        
+        main {
+            padding: 20px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px; max-width: 1400px; margin: 0 auto;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.1); border-radius: 15px;
+            padding: 25px; backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); }
+        
+        .card h3 { margin: 0 0 15px 0; font-size: 1.2rem; color: #b3d9ff; }
+        .sensor-value {
+            font-size: 3rem; font-weight: bold; margin: 10px 0;
+            text-align: center;
+        }
+        .sensor-unit { font-size: 1.2rem; opacity: 0.8; }
+        
+        .status-badge {
+            padding: 8px 16px; border-radius: 20px; font-weight: bold;
+            text-align: center; margin: 10px 0; font-size: 1.1rem;
+        }
+        .status-OK { background: #28a745; }
+        .status-WARN { background: #ffc107; color: #000; }
+        .status-DANGER { background: #dc3545; animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        .alarms {
+            margin-top: 15px; padding: 10px; background: rgba(220,53,69,0.2);
+            border-radius: 8px; min-height: 20px; font-weight: bold;
+        }
+        
+        .chart-container {
+            grid-column: 1 / -1; height: 300px;
+        }
+        
+        .log-container {
+            grid-column: 1 / -1; max-height: 250px; overflow-y: auto;
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;
+            font-family: monospace; font-size: 0.9rem; line-height: 1.4;
+        }
+        
+        @media (max-width: 768px) {
+            main { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="title">🚀 Astronaut Safety Dashboard</div>
+        <div class="controls">
+            <div id="connectionStatus" class="status-indicator status-disconnected">
+                🔴 Disconnected
+            </div>
+            <select id="missionMode">
+                <option value="eva">🚶 EVA Mode</option>
+                <option value="mars">🔴 Mars Mode</option>
+                <option value="emergency">🚨 Emergency</option>
+                <option value="training">🎓 Training</option>
+            </select>
+            <button onclick="exportData()">📊 Export CSV</button>
+        </div>
+    </header>
+    
+    <main>
+        <div class="card">
+            <h3>🌡️ Temperature</h3>
+            <div id="tempValue" class="sensor-value">--</div>
+            <div class="sensor-unit">°C</div>
+            <div id="tempStatus" class="status-badge status-OK">OK</div>
+        </div>
+        
+        <div class="card">
+            <h3>💧 Humidity</h3>
+            <div id="humidValue" class="sensor-value">--</div>
+            <div class="sensor-unit">%</div>
+        </div>
+        
+        <div class="card">
+            <h3>☣️ Gas Level</h3>
+            <div id="gasValue" class="sensor-value">--</div>
+            <div class="sensor-unit">ppm</div>
+        </div>
+        
+        <div class="card">
+            <h3>📏 Distance</h3>
+            <div id="distValue" class="sensor-value">--</div>
+            <div class="sensor-unit">cm</div>
+        </div>
+        
+        <div class="card">
+            <h3>👁️ Edge Detection</h3>
+            <div id="irValue" class="sensor-value">--</div>
+            <div class="sensor-unit">status</div>
+        </div>
+        
+        <div class="card">
+            <h3>🚨 System Alarms</h3>
+            <div id="alarmsList" class="alarms">No active alarms</div>
+        </div>
+        
+        <div class="card chart-container">
+            <h3>📈 Temperature Trend</h3>
+            <canvas id="tempChart"></canvas>
+        </div>
+        
+        <div class="card chart-container">
+            <h3>💨 Air Density Trends</h3>
+            <canvas id="densityChart"></canvas>
+        </div>
+        
+        <div class="card chart-container">
+            <h3>☣️ Gas Concentration</h3>
+            <canvas id="gasChart"></canvas>
+        </div>
+        
+        <div class="card chart-container">
+            <h3>💧 Humidity Trends</h3>
+            <canvas id="humidityChart"></canvas>
+        </div>
+        
+        <div class="card log-container">
+            <h3>📝 Event Log</h3>
+            <div id="eventLog">Waiting for sensor data...</div>
+        </div>
+    </main>
+
+    <script>
+        const socket = io();  // Auto-detect server location
+        
+        // Chart data structures
+        let tempData = { labels: [], datasets: [{ 
+            label: 'Temperature (°C)', 
+            data: [], 
+            borderColor: '#ff6b35', 
+            backgroundColor: 'rgba(255,107,53,0.1)',
+            tension: 0.4 
+        }]};
+        
+        let densityData = { labels: [], datasets: [{ 
+            label: 'Air Density (kg/m³)', 
+            data: [], 
+            borderColor: '#4ecdc4', 
+            backgroundColor: 'rgba(78,205,196,0.1)',
+            tension: 0.4 
+        }]};
+        
+        let gasData = { labels: [], datasets: [{ 
+            label: 'Gas Level (ppm)', 
+            data: [], 
+            borderColor: '#ffd93d', 
+            backgroundColor: 'rgba(255,217,61,0.1)',
+            tension: 0.4 
+        }]};
+        
+        let humidityData = { labels: [], datasets: [{ 
+            label: 'Humidity (%)', 
+            data: [], 
+            borderColor: '#6bcf7f', 
+            backgroundColor: 'rgba(107,207,127,0.1)',
+            tension: 0.4 
+        }]};
+        
+        // Create charts
+        const tempChart = new Chart(document.getElementById('tempChart'), {
+            type: 'line',
+            data: tempData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 300 },
+                scales: { 
+                    y: { beginAtZero: true, max: 60 },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+        
+        const densityChart = new Chart(document.getElementById('densityChart'), {
+            type: 'line',
+            data: densityData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 300 },
+                scales: { 
+                    y: { beginAtZero: true, max: 2.0 },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+        
+        const gasChart = new Chart(document.getElementById('gasChart'), {
+            type: 'line',
+            data: gasData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 300 },
+                scales: { 
+                    y: { beginAtZero: true, max: 200 },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+        
+        const humidityChart = new Chart(document.getElementById('humidityChart'), {
+            type: 'line',
+            data: humidityData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 300 },
+                scales: { 
+                    y: { beginAtZero: true, max: 100 },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+        
+        let eventLog = [];
+        
+        // Calculate air density from temperature and humidity
+        function calculateAirDensity(temp, humidity) {
+            const pressure = 101325; // Pa (standard atmospheric pressure)
+            const tempK = temp + 273.15; // Convert to Kelvin
+            const Rd = 287.05; // Specific gas constant for dry air
+            const Rv = 461.5; // Specific gas constant for water vapor
+            
+            // Saturation vapor pressure (Magnus formula)
+            const es = 611.2 * Math.exp(17.67 * temp / (temp + 243.5));
+            const e = (humidity / 100) * es; // Actual vapor pressure
+            
+            // Density calculation
+            const density = (pressure - e) / (Rd * tempK) + e / (Rv * tempK);
+            return density;
+        }
+        
+        socket.on('sensor_update', (data) => {
+            // Update sensor values
+            document.getElementById('tempValue').textContent = data.temperature?.toFixed(1) || '--';
+            document.getElementById('humidValue').textContent = data.humidity?.toFixed(1) || '--';
+            document.getElementById('gasValue').textContent = data.gas_level || '--';
+            document.getElementById('distValue').textContent = data.distance || '--';
+            document.getElementById('irValue').textContent = data.ir_detection ? 'DETECTED' : 'CLEAR';
+            
+            // Update status
+            const statusEl = document.getElementById('tempStatus');
+            statusEl.textContent = data.status;
+            statusEl.className = `status-badge status-${data.status}`;
+            
+            // Update connection status
+            const connEl = document.getElementById('connectionStatus');
+            if (data.connected) {
+                connEl.textContent = '🟢 Connected';
+                connEl.className = 'status-indicator status-connected';
+            }
+            
+            // Update alarms
+            const alarmsEl = document.getElementById('alarmsList');
+            if (data.alarms && data.alarms.length > 0) {
+                alarmsEl.innerHTML = data.alarms.map(alarm => `🚨 ${alarm}`).join('<br>');
+            } else {
+                alarmsEl.textContent = 'No active alarms';
+            }
+            
+            // Update mission mode
+            document.getElementById('missionMode').value = data.mode;
+            
+            // Update all charts
+            if (data.temperature && data.humidity) {
+                const time = new Date().toLocaleTimeString();
+                const density = calculateAirDensity(data.temperature, data.humidity);
+                
+                // Temperature chart
+                tempData.labels.push(time);
+                tempData.datasets[0].data.push(data.temperature);
+                
+                // Density chart
+                densityData.labels.push(time);
+                densityData.datasets[0].data.push(density);
+                
+                // Gas chart
+                gasData.labels.push(time);
+                gasData.datasets[0].data.push(data.gas_level);
+                
+                // Humidity chart
+                humidityData.labels.push(time);
+                humidityData.datasets[0].data.push(data.humidity);
+                
+                // Keep last 20 points
+                if (tempData.labels.length > 20) {
+                    tempData.labels.shift();
+                    tempData.datasets[0].data.shift();
+                    densityData.labels.shift();
+                    densityData.datasets[0].data.shift();
+                    gasData.labels.shift();
+                    gasData.datasets[0].data.shift();
+                    humidityData.labels.shift();
+                    humidityData.datasets[0].data.shift();
+                }
+                
+                tempChart.update();
+                densityChart.update();
+                gasChart.update();
+                humidityChart.update();
+            }
+            
+            // Update event log
+            const time = new Date().toLocaleTimeString();
+            const logEntry = `[${time}] T:${data.temperature?.toFixed(1)}°C H:${data.humidity?.toFixed(1)}% G:${data.gas_level} D:${data.distance}cm IR:${data.ir_detection} Status:${data.status}`;
+            eventLog.unshift(logEntry);
+            if (eventLog.length > 50) eventLog.pop();
+            document.getElementById('eventLog').innerHTML = eventLog.join('<br>');
+        });
+        
+        socket.on('disconnect', () => {
+            document.getElementById('connectionStatus').textContent = '🔴 Disconnected';
+            document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+        });
+        
+        document.getElementById('missionMode').addEventListener('change', async (e) => {
+            try {
+                await fetch('/api/mission_mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: e.target.value })
+                });
+            } catch (error) {
+                console.error('Failed to update mission mode:', error);
+            }
+        });
+        
+        function exportData() {
+            window.open('/api/export', '_blank');
+        }
+    </script>
+</body>
+</html>
